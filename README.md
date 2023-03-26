@@ -1,4 +1,4 @@
-# \lnp953\
+# lnp953
 
 **Group members:**
 - Jasmin Safai
