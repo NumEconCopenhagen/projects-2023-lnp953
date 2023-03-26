@@ -1,9 +1,8 @@
-# \[Group name\]
+# \[lnp953\]
 
 **Group members:**
-- A
-- B
-- C
+- Jasmin Safai
+
 
 This repository contains  
 1. Inaugural project. 
