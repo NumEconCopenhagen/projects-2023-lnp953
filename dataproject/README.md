@@ -4,7 +4,7 @@ My project is titled **The evolution of the House Price Index and GDP in Denmark
 
 The **results** of the project can be seen from running [dataproject.ipynb](dataproject.ipynb).
 
-We apply the **following datasets**:
+I apply the **following datasets**:
 
 1. GDP.xlxs (Danmarks Statistik, Statistikbanken NAN1) 
 1. HPI.xlxs (Danmarks Statistik, Statistikbanken EJ66) 
