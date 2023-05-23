@@ -11,25 +11,28 @@ import matplotlib.pyplot as plt
 class HouseholdSpecializationModelClass:
 
     def __init__(self):
-        """ setup model """
+        """Initialize the model and set up parameters"""
 
         # a. create namespaces
         par = self.par = SimpleNamespace()
         sol = self.sol = SimpleNamespace()
 
-        # b. preferences
-        par.rho = 2.0
+        # b. preferences baseline parameters
+        par.rho = 2.0 
         par.nu = 0.001
         par.epsilon_m = 1.0
         par.epsilon_f = 1.0
         par.epsilon = 1.0
         par.omega = 0.5 
 
-        # c. household production
+        #Emasculating preference parameter
+        par.delta = 1
+
+        # c. household production baseline parameters
         par.alpha = 0.5
         par.sigma = 1.0
 
-        # d. wages
+        # d. wages baseline parameters
         par.wM = 1.0
         par.wF = 1.0
 
@@ -37,24 +40,23 @@ class HouseholdSpecializationModelClass:
         #The start of the interval is 0.8, the end is 1.2 and the number of items to generate within the range is 5
         par.wF_vec = np.linspace(0.8,1.2,5)
 
-        #I generate a new parameter for the wage-ratio vector.
-        #par.log_wF_vec_wM =np.log(par.wF_vec/par.wM)
-
+    
         # e. targets
         par.beta0_target = 0.4
         par.beta1_target = -0.1
 
         # f. solution
-        sol.LM_vec = np.zeros(par.wF_vec.size)
+        #Vectors that stores optimal male/female low/high-skilled hours
+        sol.LM_vec = np.zeros(par.wF_vec.size) 
         sol.HM_vec = np.zeros(par.wF_vec.size)
         sol.LF_vec = np.zeros(par.wF_vec.size)
         sol.HF_vec = np.zeros(par.wF_vec.size)
 
-        sol.beta0 = np.nan
-        sol.beta1 = np.nan
+        sol.beta0 = np.nan #Estimated beta0 in regression
+        sol.beta1 = np.nan #Estimated beta1 in regression
 
     def calc_utility(self,LM,HM,LF,HF):
-        """ calculate utility """
+        """Calculate utility """
 
         par = self.par
         sol = self.sol
@@ -79,12 +81,23 @@ class HouseholdSpecializationModelClass:
         epsilon_f = 1+1/par.epsilon_f
         TM = LM+HM
         TF = LF+HF
-        disutility = par.nu*(TM**epsilon_m/epsilon_m+TF**epsilon_f/epsilon_f)
+        if par.delta ==1:
+            disutility = par.nu*(TM**epsilon_m/epsilon_m+TF**epsilon_f/epsilon_f)
+        else:
+            disutility = par.nu*((LM+par.delta*HM)**epsilon_m/epsilon_m+TF**epsilon_f/epsilon_f)
         
         return utility - disutility
 
     def solve_discrete(self,do_print=False):
-        """ solve model discretely """
+        """Solve model discretely.
+
+        Args:
+            do_print (bool): Whether to print the results.
+
+        Returns:
+            opt (SimpleNamespace): Optimal solution.
+
+        """
         
         par = self.par
         sol = self.sol
@@ -92,9 +105,9 @@ class HouseholdSpecializationModelClass:
         
         # a. all possible choices
         x = np.linspace(0,24,49)
-        LM,HM,LF,HF = np.meshgrid(x,x,x,x) # all combinations
+        LM,HM,LF,HF = np.meshgrid(x,x,x,x) #All combinations
     
-        LM = LM.ravel() # vector
+        LM = LM.ravel() #Vector
         HM = HM.ravel()
         LF = LF.ravel()
         HF = HF.ravel()
@@ -124,13 +137,14 @@ class HouseholdSpecializationModelClass:
         return opt
 
     def solve(self,do_print=False):
-        """ Solving the model continous
-        args: 
-        self: class parameters
-        
+        """Solving the model continuously.
+
+        Args:
+            do_print (bool): Whether to print the results.
+
         Returns:
-        opt: optimal solution
-        
+            opt (SimpleNamespace): Optimal solution.
+
         """
         par = self.par
         sol = self.sol
@@ -174,8 +188,12 @@ class HouseholdSpecializationModelClass:
 
 
     def solve_wF_vec(self,discrete=False):
-        """ solve model for vector of female wages """
+        """Solve model for a vector of female wages.
 
+        Args:
+            discrete (bool): Whether to solve discretely.
+
+        """
         par = self.par
         sol = self.sol
 
@@ -211,7 +229,44 @@ class HouseholdSpecializationModelClass:
         A = np.vstack([np.ones(x.size),x]).T
         sol.beta0,sol.beta1 = np.linalg.lstsq(A,y,rcond=None)[0]
     
-    def estimate(self,alpha=None,sigma=None):
-        """ estimate alpha and sigma """
 
-        pass
+    def estimate(self, params=None):
+        """Estimating sigma and delta values based on the model and return the error value."""
+        par = self.par
+        
+        #Setting the parameter values if provided
+        if params is not None:
+            if 'sigma' in params:
+                par.sigma = params['sigma']
+            if 'delta' in params:
+                par.delta = params['delta']
+        
+        #Defining the objective function for estimation
+        def objective(params):
+            par.sigma, par.delta = params
+            par.alpha = 0.5  #Ensuring alpha is 0.5
+            opt = self.solve()
+            return np.abs(opt.HF - self.sol.HF_vec).sum()  #The error value
+        
+        #Initial guess for sigma and delta
+        initial_params = [par.sigma, par.delta]
+        
+        #Optimizing using the Nelder-Mead method to estimate sigma and delta
+        result = optimize.minimize(objective, initial_params, method='Nelder-Mead')
+        
+        #Updating the sigma and delta values with the estimated values
+        par.sigma, par.delta = result.x
+        
+        #Calling the estimated values of sigma and delta
+        estimated_sigma = par.sigma
+        estimated_delta = par.delta
+        
+        #Returning the estimated values of sigma and delta as well as the error value
+        return estimated_sigma, estimated_delta, result.fun
+
+
+
+
+
+
+
