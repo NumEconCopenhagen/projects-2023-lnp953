@@ -4,6 +4,7 @@ from types import SimpleNamespace
 import numpy as np
 from scipy import optimize
 
+
 import pandas as pd 
 import matplotlib.pyplot as plt
 
@@ -123,8 +124,14 @@ class HouseholdSpecializationModelClass:
         return opt
 
     def solve(self,do_print=False):
-        """ solve model continously """
-
+        """ Solving the model continous
+        args: 
+        self: class parameters
+        
+        Returns:
+        opt: optimal solution
+        
+        """
         par = self.par
         sol = self.sol
         opt = SimpleNamespace()
@@ -151,7 +158,7 @@ class HouseholdSpecializationModelClass:
         x0 = [12, 12, 12, 12,]
 
         #Solving
-        result = optimize.minimize(obj, x0, constraints=constraints, method = "SLSQP")
+        result = optimize.minimize(obj, x0, constraints=constraints, method = "SLSQP", tol= 1e-08)
 
         #Saving results:
         opt.LM = sol.LM = result.x[0]
