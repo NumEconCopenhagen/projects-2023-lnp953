@@ -1,6 +1,6 @@
 # Inaugural project
 
-The **results** of the project can be seen from running [inauguralproject.ipynb](inauguralproject.ipynb) which relies on inauguralproject.py.
+The **results** of the project can be seen from running [inauguralproject.ipynb](inauguralproject.ipynb) which relies on [inauguralproject.py] (inauguralproject.py).
 
 **Dependencies:** Apart from a standard Anaconda Python 3 installation, the project requires no further packages.
 
