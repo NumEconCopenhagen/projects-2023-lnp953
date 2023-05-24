@@ -1,6 +1,6 @@
 # Data analysis project
 
-My project is titled **The evolution of the House Price Index and GDP in Denmark** and is about examining the empirical relationship between HPI and GDP using data from Danmarks Statistik.
+My data project titled **"The Evolution of the House Price Index and GDP in Denmark"** aims to investigate the empirical relationship between the House Price Index (HPI) and Gross Domestic Product (GDP) by analyzing data from Danmarks Statistik. By cleaning and analyzing data, this project aims to present the dynamics between these two variables and their correlation over time. The main focus is to understand how fluctuations in GDP impact the HPI and vice versa. The results suggest a positive correlation between GDP and HPI. However,it is worth noting that other influencing factors, such as interest rates, political conditions and demographics can also have an impact on HPI. 
 
 The **results** of the project can be seen from running [dataproject.ipynb](dataproject.ipynb).
 
