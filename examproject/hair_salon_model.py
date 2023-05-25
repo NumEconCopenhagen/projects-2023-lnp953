@@ -125,5 +125,12 @@ class HairSalonPolicyModel(HairSalonDynamicModel):
         #Calculating the ex post value of the salon giev the policy
         h_policy = np.sum(discounted_profits)  
         return h_policy
+    
+
+
+
+
+
+
 
 
