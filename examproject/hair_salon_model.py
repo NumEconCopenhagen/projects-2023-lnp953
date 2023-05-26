@@ -126,6 +126,34 @@ class HairSalonPolicyModel(HairSalonDynamicModel):
         h_policy = np.sum(discounted_profits)  
         return h_policy
     
+class HairSalonDynamicModel_Alternative_Policy:
+    def __init__(self, model, pricing_policy):
+        """
+        Initializing the HairSalonDynamicPolicyModel class with the base model and pricing policy.
+        """
+        self.model = model
+        self.pricing_policy = pricing_policy
+
+    def calculate_profit(self, kappa, ell=None, time_slot=None):
+        """
+        Calculating the profit based on the given kappa, ell, and time slot using the pricing policy.
+        """
+        if ell is None:
+            ell = ((1 - self.model.eta) * kappa / self.model.w) ** (1 / self.model.eta)
+        
+        if time_slot and time_slot in self.pricing_policy:
+            pricing_factor = self.pricing_policy[time_slot]
+            kappa *= pricing_factor
+        
+        profit = self.model.calculate_profit(kappa, ell)
+        
+        return profit
+
+    def calculate_h(self, epsilon_series, time_slot=None):
+        """
+        Calculating the ex post value of the salon based on the epsilon series and time slot.
+        """
+        return self.model.calculate_h(epsilon_series, time_slot)
 
 
 
