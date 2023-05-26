@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 
 class HairSalonModel:
     def __init__(self, eta=0.5, w=1.0):
@@ -60,10 +61,13 @@ class HairSalonDynamicModel:
         adjustment_cost_series = np.zeros_like(kappa_series) 
 
         for t in range(len(kappa_series)):
+
             #Calculating profit for each time step
             profit_series[t] = self.calculate_profit(kappa_series[t], ell_series[t])
-            #Checing if ell changes from the time step before 
+
+            #Checking if ell changes from the time step before 
             if t > 0 and ell_series[t] != ell_series[t-1]:
+                
                 #Assigning adjustment cost if there is a change in ell
                 adjustment_cost_series[t] = self.iota 
 
@@ -127,33 +131,111 @@ class HairSalonPolicyModel(HairSalonDynamicModel):
         return h_policy
     
 class HairSalonDynamicModel_Alternative_Policy:
-    def __init__(self, model, pricing_policy):
+    def __init__(self, eta=0.5, w=1.0, rho=0.90, iota=0.01, sigma_epsilon=0.10, R=1.01**(1/12), pricing_policy=None):
         """
-        Initializing the HairSalonDynamicPolicyModel class with the base model and pricing policy.
+        Initializing the HairSalonDynamicModel_Alternative_Policy class with the given parameters and pricing policy.
+        
         """
-        self.model = model
+        self.eta = eta
+        self.w = w
+        self.rho = rho
+        self.iota = iota
+        self.sigma_epsilon = sigma_epsilon
+        self.R = R
         self.pricing_policy = pricing_policy
 
-    def calculate_profit(self, kappa, ell=None, time_slot=None):
-        """
-        Calculating the profit based on the given kappa, ell, and time slot using the pricing policy.
-        """
+    def calculate_profit(self, kappa, ell=None):
         if ell is None:
-            ell = ((1 - self.model.eta) * kappa / self.model.w) ** (1 / self.model.eta)
-        
-        if time_slot and time_slot in self.pricing_policy:
-            pricing_factor = self.pricing_policy[time_slot]
-            kappa *= pricing_factor
-        
-        profit = self.model.calculate_profit(kappa, ell)
-        
+            ell = ((1 - self.eta) * kappa / self.w) ** (1 / self.eta)
+        profit = kappa * ell ** (1 - self.eta) - self.w * ell
         return profit
 
-    def calculate_h(self, epsilon_series, time_slot=None):
+import numpy as np
+
+class HairSalonDynamicModel_Alternative_Policy:
+    def __init__(self, eta=0.5, w=1.0, rho=0.90, iota=0.01, sigma_epsilon=0.10, R=1.01**(1/12), pricing_policy=None):
         """
-        Calculating the ex post value of the salon based on the epsilon series and time slot.
+        Initializing the HairSalonDynamicModel_Alternative_Policy class with the given parameters and pricing policy.
+        
         """
-        return self.model.calculate_h(epsilon_series, time_slot)
+        self.eta = eta
+        self.w = w
+        self.rho = rho
+        self.iota = iota
+        self.sigma_epsilon = sigma_epsilon
+        self.R = R
+        self.pricing_policy = pricing_policy
+
+    def calculate_profit(self, kappa, ell=None):
+        if ell is None:
+            ell = ((1 - self.eta) * kappa / self.w) ** (1 / self.eta)
+        profit = kappa * ell ** (1 - self.eta) - self.w * ell
+        return profit
+
+    def calculate_h(self, epsilon_series):
+        """
+        Calculating the ex post value of the salon based on the epsilon series and alternative pricing policy.
+        
+        """
+        #Creating a function to define the peak hours (peak hours = 9 AM to 5 PM, Monday to Friday )
+
+        def is_peak_hour(t):
+            if t.weekday() < 5 and t.hour >= 9 and t.hour < 17:
+                return True
+            else:
+                return False
+        
+        #Creating a function to define the weekend (weekend = Saturday and Sunday)
+
+        def is_weekend(t):
+            if t.weekday() >= 5:
+                return True
+            else:
+                return False
+        
+        #Calculating kappa_t using AR(1)
+        kappa_series = np.exp(self.rho * np.concatenate(([0], epsilon_series[:-1])))
+
+        #Calculating ell_t using the policy
+        ell_series = ((1 - self.eta) * kappa_series / self.w) ** (1 / self.eta)
+
+        #Initializing an array to store profits for each time step
+        profit_series = np.zeros_like(kappa_series)
+
+        #Initializing an array to store adjustment costs for each time step
+        adjustment_cost_series = np.zeros_like(kappa_series)
+
+        #Generate datetime objects for each time step
+        time_steps = pd.date_range(start='2023-01-01', periods=len(kappa_series), freq='D')
+
+        for t in range(len(kappa_series)):
+            current_time_step = time_steps[t]
+
+            #Applying alternative pricing policy if available
+            if self.pricing_policy:
+                pricing_factor = 1.0
+                for condition, factor in self.pricing_policy.items():
+                    if condition == 'peak_hours' and is_peak_hour(current_time_step):
+                        pricing_factor *= factor
+                    elif condition == 'weekends' and is_weekend(current_time_step):
+                        pricing_factor *= factor
+                kappa_series[t] *= pricing_factor
+
+            #Calculating profit for each time step
+            profit_series[t] = self.calculate_profit(kappa_series[t], ell_series[t])
+
+    
+            #Checking if ell changes from the time step before
+            if t > 0 and ell_series[t] != ell_series[t - 1]:
+                #Assigning adjustment cost if there is a change in ell
+                adjustment_cost_series[t] = self.iota
+
+        #Calculating discounted profits using the discount factor R
+        discounted_profits = self.R ** (-np.arange(len(kappa_series))) * (profit_series - adjustment_cost_series)
+
+        #Summing the discounted profits to get the ex post value of the salon
+        h = np.sum(discounted_profits)
+        return h
 
 
 
